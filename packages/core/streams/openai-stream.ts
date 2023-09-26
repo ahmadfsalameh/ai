@@ -3,7 +3,6 @@ import { createChunkDecoder, getStreamString } from '../shared/utils';
 
 import {
   AIStream,
-  trimStartOfStreamHelper,
   type AIStreamCallbacksAndOptions,
   FunctionCallPayload,
   readableFromAsyncIterable,
@@ -177,7 +176,6 @@ async function* streamable(stream: AsyncIterableOpenAIStreamReturnTypes) {
 }
 
 function chunkToText(): (chunk: OpenAIStreamReturnTypes) => string | void {
-  const trimStartOfStream = trimStartOfStreamHelper();
   let isFunctionStreamingIn: boolean;
   return json => {
     /*
@@ -298,13 +296,14 @@ function chunkToText(): (chunk: OpenAIStreamReturnTypes) => string | void {
       return '"}}';
     }
 
-    const text = trimStartOfStream(
-      isChatCompletionChunk(json) && json.choices[0].delta.content
-        ? json.choices[0].delta.content
-        : isCompletion(json)
-        ? json.choices[0].text
-        : '',
-    );
+    let text = '';
+
+    if (isChatCompletionChunk(json) && json.choices[0].delta.content) {
+        text = json.choices[0].delta.content;
+    } else if (isCompletion(json)) {
+        text = json.choices[0].text;
+    }
+
     return text;
   };
 }
